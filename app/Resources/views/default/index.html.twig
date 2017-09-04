@@ -9,16 +9,31 @@
         {% for theme in themeList %}
             <tr>
                 <td>
-                    <a href="{{ path('theme_details', {'id': theme.id}) }}">
+                    <a href="{{ path("theme_details",{'id': theme.id}) }}">
                         {{ theme.name }}
                     </a>
                 </td>
-                <td>{{ theme.posts | length }} posts</td>
+                <td>{{ theme.numberOfPosts }} posts</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+    <h2>nouveau post</h2>
+    {{ form(themeForm) }}
 
+{% endblock %}
+{% block aside %}
+<h3>les post par années</h3>
+<ul>
+
+    {% for item in postList %}
+    <a>
+        <a href="{{ item.yearPublished }} ({{ item.numberOfPosts }}"
+           {{ item.yearPublished }} ({{ item.numberOfPosts }})
+    </a>
+    </li>
+    {% endfor %}
+</ul>
 {% endblock %}
 
 

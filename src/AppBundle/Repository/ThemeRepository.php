@@ -10,4 +10,18 @@ namespace AppBundle\Repository;
  */
 class ThemeRepository extends \Doctrine\ORM\EntityRepository
 {
+    /**
+     * @return \Doctrine\ORM\Query
+     */
+    public function getAllTheme()
+    {
+        $qb = $this->createQueryBuilder("t");
+        $qb->select("t.name, count(p) as numberOfPosts, t.id")
+        ->innerJoin( "t.posts", "p")
+        ->groupBy("t.id");
+        dump($qb->getDQL());
+
+        return $qb->getQuery();
+
+    }
 }

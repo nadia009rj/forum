@@ -2,6 +2,8 @@
 
 namespace AppBundle\Controller;
 
+use AppBundle\Entity\Post;
+use AppBundle\Form\PostType;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,10 +19,22 @@ class DefaultController extends Controller
     {
         $repository = $this->getDoctrine()
             ->getRepository("AppBundle:Theme");
+        $postRepository =$this->getDoctrine()
+            ->getRepository("AppBundle:Post");
 
-        $themeList = $repository->findAll();
+        $list = $repository->getAllTheme()->getArrayResult();
+        $postListByYear = $postRepository->getPostsGroupedByYear();
 
-        return $this->render('default/index.html.twig', ["themeList" => $themeList]);
+        //creation de formulaire
+        $post = new Post();
+        $form = $this->createForm(PostType::class, $post);
+
+        return $this->render('default/index.html.twig', [
+
+            "themeList" => $list,"postList"=>$postListByYear,
+            "postForm" => $form->createView()
+
+        ]);
     }
 
     /**
@@ -32,17 +46,18 @@ class DefaultController extends Controller
 
         $repository = $this->getDoctrine()
             ->getRepository("AppBundle:Theme");
+        $postRepository =$this->getDoctrine()
+            ->getRepository("AppBundle:Post");
 
         $theme = $repository->find($id);
+       $postList = $theme->getPosts();
 
-        if(! $theme){
-            throw new NotFoundHttpException("Thème introuvable");
-        }
 
 
         return $this->render('default/theme.html.twig', [
-            "theme" => $theme,
-            "postList" => $theme->getPosts()
+
+            "theme" => $theme,"postList"=>$postList
+
         ]);
     }
 }
