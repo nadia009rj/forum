@@ -2,7 +2,9 @@
 
 namespace AppBundle\Controller;
 
+use AppBundle\Entity\Author;
 use AppBundle\Entity\Post;
+use AppBundle\Form\AuthorType;
 use AppBundle\Form\PostType;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
@@ -15,24 +17,49 @@ class DefaultController extends Controller
     /**
      * @Route("/", name="homepage")
      */
-    public function indexAction()
+    public function indexAction(Request $request)
     {
         $repository = $this->getDoctrine()
             ->getRepository("AppBundle:Theme");
-        $postRepository =$this->getDoctrine()
+        $postRepository = $this->getDoctrine()
             ->getRepository("AppBundle:Post");
 
         $list = $repository->getAllTheme()->getArrayResult();
         $postListByYear = $postRepository->getPostsGroupedByYear();
+        //gestion de nouveaux posts
+        $user = $this->getUser();
+        $roles = isset($user)?$user->getRoles():[];
+        $formView =null;
+         if(in_array("ROLE_AUTHOR", $roles)) {
+             //creation de formulaire
+             $post = new Post();
+             $post->setCreatedAt(new \DateTime());
+             $post->setAuthor($user);
+             $form = $this->createForm(PostType::class, $post);
 
-        //creation de formulaire
-        $post = new Post();
-        $form = $this->createForm(PostType::class, $post);
+             $form->handleRequest($request);
+
+             //traitement de formulaire
+             if ($form->isSubmitted() and $form->isValid()) {
+
+                 //persistance de l'entite
+                 $em = $this->getDoctrine()->getManager();
+                 $em->persist($post);
+                 $em->flush();
+
+                 //redirection pour eviter de poster 2 fois les données
+                 return $this->redirectToRoute("/");
+             }
+             $formView = $form->createView();
+         }
+        //fin de la gestion des nouveaux posts
+
 
         return $this->render('default/index.html.twig', [
 
-            "themeList" => $list,"postList"=>$postListByYear,
-            "postForm" => $form->createView()
+            "themeList" => $list,
+            "postList" => $postListByYear,
+            "postForm" => $formView
 
         ]);
     }
@@ -42,22 +69,72 @@ class DefaultController extends Controller
      * @param $id
      * @return Response
      */
-    public function themeAction($id){
+    public function themeAction($id)
+    {
 
         $repository = $this->getDoctrine()
             ->getRepository("AppBundle:Theme");
-        $postRepository =$this->getDoctrine()
+        $postRepository = $this->getDoctrine()
             ->getRepository("AppBundle:Post");
 
         $theme = $repository->find($id);
-       $postList = $theme->getPosts();
-
+        $postList = $theme->getPosts();
 
 
         return $this->render('default/theme.html.twig', [
 
-            "theme" => $theme,"postList"=>$postList
+            "theme" => $theme, "postList" => $postList
 
         ]);
+    }
+
+    /**
+     * @Route("/inscription", name="author_registration")
+     * @param Request $request
+     * @return Response
+     */
+    public function registrationAction(Request $request)
+    {
+        $author = new Author();
+        $form = $this->createForm(
+            AuthorType::class,
+            $author
+        );
+        $form->handleRequest($request);
+        if ($form->isSubmitted() and $form->isValid()) {
+            $em = $this->getDoctrine()->getManager();
+
+
+            //encodage du mot de passe
+            $encoderFactory = $this->get("security.encoder_factory");
+            $encoder = $encoderFactory->getEncoder($author);
+            $author->setPassword($encoder->encodePassword($author->getPlainPassword(), null));
+            $author->setPlainPassword(null);
+
+
+            //enregistrement dans la base de donnees
+            $em->persist($author);
+            $em->flush();
+        }
+        return $this->render("default/author-registration.html.twig", [
+            "registrationForm" => $form->createView()]);
+    }
+
+    /**
+     * @Route("/author-login", name="author_login")
+     * @return Response
+     */
+    public function authorloginAction()
+    {
+        $securityUtils = $this->get('security.authentication_utils');
+
+        return $this->render(":default:generic-login.html.twig",
+            [
+                "title" => "Identification des auteurs",
+                "action" => $this->generateUrl("author_login_check"),
+                "userName" => $securityUtils->getLastUsername(),
+                "error" => $securityUtils->getLastAuthenticationError()
+
+            ]);
     }
 }

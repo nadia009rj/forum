@@ -18,22 +18,31 @@
         {% endfor %}
         </tbody>
     </table>
+
+    {% if is_granted('ROLE_AUTHOR') %}
     <h2>nouveau post</h2>
-    {{ form(themeForm) }}
+    {{ form(postForm) }}
+{% endif %}
 
 {% endblock %}
 {% block aside %}
-<h3>les post par années</h3>
+<h3>les posts par années</h3>
 <ul>
 
+
     {% for item in postList %}
-    <a>
-        <a href="{{ item.yearPublished }} ({{ item.numberOfPosts }}"
-           {{ item.yearPublished }} ({{ item.numberOfPosts }})
+    <li>
+        <a href="{{path('post_by_year',{'year': item.yearPublished}) }} ">
+           {{ item.yearPublished }}
     </a>
+        ({{ item.numberOfPosts }})
     </li>
     {% endfor %}
 </ul>
+{% endblock %}
+{% block javascript %}
+{{ parent() }}
+<script src="{{ asset('bundles/ivoryckeditor/ckeditor.js') }}"></script>
 {% endblock %}
 
 
