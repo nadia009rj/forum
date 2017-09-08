@@ -29,28 +29,37 @@ class DefaultController extends Controller
         //gestion de nouveaux posts
         $user = $this->getUser();
         $roles = isset($user)?$user->getRoles():[];
+
         $formView =null;
          if(in_array("ROLE_AUTHOR", $roles)) {
              //creation de formulaire
              $post = new Post();
              $post->setCreatedAt(new \DateTime());
              $post->setAuthor($user);
-             $form = $this->createForm(PostType::class, $post);
+            // $form = $this->createForm(PostType::class, $post);
 
-             $form->handleRequest($request);
+           //  $form->handleRequest($request);
+             $formHandler = $this->get("post.form_handler")
+                 ->setPost($post);
+
 
              //traitement de formulaire
-             if ($form->isSubmitted() and $form->isValid()) {
+             if ($formHandler->process()){
+            // if ($form->isSubmitted() and $form->isValid()) {
 
-                 //persistance de l'entite
-                 $em = $this->getDoctrine()->getManager();
-                 $em->persist($post);
-                 $em->flush();
+                // $uploadManager = $this->get("stof_doctrine_extensions.uploadable.manager");
+                // $uploadManager->markEntityToUpload($post, $post->getImageFileName());
+
+//on a remplace les $em par $manager
+                // $em = $this->getDoctrine()->getManager();
+               // $em->persist($post);
+               //  $em->flush();
+
 
                  //redirection pour eviter de poster 2 fois les données
-                 return $this->redirectToRoute("/");
+                 return $this->redirectToRoute("homepage");
              }
-             $formView = $form->createView();
+             $formView = $formHandler->getFormView();
          }
         //fin de la gestion des nouveaux posts
 
@@ -136,5 +145,18 @@ class DefaultController extends Controller
                 "error" => $securityUtils->getLastAuthenticationError()
 
             ]);
+    }
+
+    /**
+     * @Route("\test-service")
+     * @return Response
+     */
+    public function testServiceAction(){
+        $helloService = $this->get("service.hello");
+        $helloService->setName("Bob");
+        $newHelloService = $this->get("service.hello");
+        $message = $helloService->sayHello().
+            ''. $newHelloService->sayHello();
+        return $this->render( "default/test-service.html.twig", ["message"=>$message]);
     }
 }
